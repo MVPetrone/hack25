@@ -103,20 +103,23 @@ def invoke(prompt, from_uid):
             # Actually call the tool and get the result
             try:
                 if tool_name == "book_hotel":
-                    tool_result = book_hotel(**collected_args)
+                    print(f"DEBUG: Calling book_hotel with parameters: {collected_args}")
+                    tool_result = book_hotel.invoke(collected_args)
                     result["response"] = f"✅ Hotel booking confirmed!\n\n🏨 Hotel: {tool_result['hotel']}\n📍 Location: {tool_result['location']}\n📅 Check-in: {tool_result['check_in']}\n📅 Check-out: {tool_result['check_out']}\n👥 Guests: {tool_result['guests']}\n🛏️ Room Type: {tool_result['room_type']}\n🌙 Nights: {tool_result['nights']}\n💰 Total Price: ${tool_result['total_price']}\n🆔 Confirmation ID: {tool_result['confirmation_id']}"
                 elif tool_name == "initiate_vote":
-                    tool_result = initiate_vote(**collected_args)
+                    tool_result = initiate_vote.invoke(collected_args)
                     result["response"] = f"✅ Vote initiated successfully!\n\n📊 Title: {collected_args['title']}\n👥 Group: {collected_args['group_id']}\n🗳️ Options: {', '.join(collected_args['options'])}"
                 elif tool_name == "download_video":
-                    tool_result = download_video(**collected_args)
+                    tool_result = download_video.invoke(collected_args)
                     result["response"] = f"📹 Video download initiated for: {collected_args.get('video_url', 'unknown URL')}"
                 elif tool_name == "transcribe":
-                    tool_result = transcribe(**collected_args)
+                    tool_result = transcribe.invoke(collected_args)
                     result["response"] = f"📝 Transcription completed for: {collected_args.get('video_url', 'unknown URL')}"
                 else:
                     result["response"] = f"All parameters collected for `{tool_name}`: {collected_args}"
             except Exception as e:
+                print(f"DEBUG: Error in {tool_name}: {str(e)}")
+                print(f"DEBUG: Parameters passed: {collected_args}")
                 result["response"] = f"❌ Error executing {tool_name}: {str(e)}"
     else:
         result["response"] = result.get("messages", [])[-1].content if result.get("messages") else ""
