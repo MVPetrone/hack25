@@ -1,7 +1,9 @@
 import random
 from typing import Dict, Any
 from datetime import datetime
+from langchain.tools import tool
 
+@tool
  # Simulated hotel booking function for demo purposes.
  # NOTE: This is a placeholder; logic such as real-time availability, pricing, and validation is not implemented.
 def book_hotel(
