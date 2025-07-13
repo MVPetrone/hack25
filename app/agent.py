@@ -7,6 +7,7 @@ from app.tools.transcript import transcribe
 from app.tools.video_downloader import download_video
 from app.tools.book_hotel import book_hotel
 from app.tools.book_restaurant import book_restaurant
+from app.tools.book_restaurant_vote import book_restaurant_vote, get_restaurant_vote_results
 from app.tools.start_vote import initiate_vote, count_vote_result
 from app.tools.image_generator import generate_image
 
@@ -15,7 +16,7 @@ from app.utils import send_user_message
 
 openai_api_key = config.OPENAI_API_KEY
 
-tools = [download_video, transcribe, book_hotel, book_restaurant, initiate_vote, count_vote_result, generate_image]
+tools = [download_video, transcribe, book_hotel, book_restaurant, book_restaurant_vote, get_restaurant_vote_results, initiate_vote, count_vote_result, generate_image]
 
 prompt = """
 You are a helpful assistant. STRICTLY follow these rules:
@@ -83,6 +84,10 @@ def invoke(prompt, from_uid):
                     required_params = ["location", "check_in", "check_out", "guests", "room_type"]
                 if tool_name == "book_restaurant":
                     required_params = ["location", "date", "time", "guests", "cuisine"]
+                if tool_name == "book_restaurant_vote":
+                    required_params = ["group_id"]
+                if tool_name == "get_restaurant_vote_results":
+                    required_params = ["group_id"]
                 if tool_name == "initiate_vote":
                     required_params = ["group_id", "title", "options"]
 
@@ -113,6 +118,25 @@ def invoke(prompt, from_uid):
                     print(f"DEBUG: Calling book_restaurant with parameters: {collected_args}")
                     tool_result = book_restaurant.invoke(collected_args)
                     result["response"] = f"✅ Restaurant reservation confirmed!\n\n🍽️ Restaurant: {tool_result['restaurant']}\n📍 Location: {tool_result['location']}\n📅 Date: {tool_result['date']}\n🕐 Time: {tool_result['time']}\n👥 Guests: {tool_result['guests']}\n🍴 Cuisine: {tool_result['cuisine']}\n💰 Estimated Total: ${tool_result['total_estimated_price']}\n🆔 Reservation ID: {tool_result['reservation_id']}"
+                elif tool_name == "book_restaurant_vote":
+                    print(f"DEBUG: Calling book_restaurant_vote with parameters: {collected_args}")
+                    tool_result = book_restaurant_vote.invoke(collected_args)
+                    result["response"] = f"✅ Restaurant booking vote created!\n\n🍽️ Group: {tool_result['group_id']}\n📊 Status: Gathering preferences\n🗳️ Vote options: {len(tool_result.get('vote_options', []))} options\n\nThe group will vote on the missing preferences, then you can use the final booking once all votes are collected."
+                elif tool_name == "get_restaurant_vote_results":
+                    print(f"DEBUG: Calling get_restaurant_vote_results with parameters: {collected_args}")
+                    tool_result = get_restaurant_vote_results.invoke(collected_args)
+                    
+                    # Format the vote results
+                    results_text = "📊 **Restaurant Vote Results**\n\n"
+                    for option, votes in tool_result.get('results', {}).items():
+                        results_text += f"• {option}: {votes} votes\n"
+                    
+                    results_text += f"\n🏆 **Winning Options:**\n"
+                    winning_options = tool_result.get('winning_options', {})
+                    for param, value in winning_options.items():
+                        results_text += f"• {param.title()}: {value}\n"
+                    
+                    result["response"] = results_text
                 elif tool_name == "initiate_vote":
                     tool_result = initiate_vote.invoke(collected_args)
                     result["response"] = f"✅ Vote initiated successfully!\n\n📊 Title: {collected_args['title']}\n👥 Group: {collected_args['group_id']}\n🗳️ Options: {', '.join(collected_args['options'])}"
