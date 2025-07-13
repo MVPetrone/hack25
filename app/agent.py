@@ -9,6 +9,7 @@ from app.tools.book_hotel import book_hotel
 from app.tools.book_restaurant import book_restaurant
 from app.tools.book_restaurant_vote import book_restaurant_vote, get_restaurant_vote_results, execute_restaurant_booking_with_votes
 from app.tools.book_cab import book_cab
+from app.tools.book_flight import book_flight
 from app.tools.start_vote import initiate_vote, count_vote_result
 from app.tools.image_generator import generate_image
 
@@ -17,7 +18,7 @@ from app.utils import send_user_message
 
 openai_api_key = config.OPENAI_API_KEY
 
-tools = [download_video, transcribe, book_hotel, book_restaurant, book_restaurant_vote, get_restaurant_vote_results, execute_restaurant_booking_with_votes, book_cab, initiate_vote, count_vote_result, generate_image]
+tools = [download_video, transcribe, book_hotel, book_restaurant, book_restaurant_vote, get_restaurant_vote_results, execute_restaurant_booking_with_votes, book_cab, book_flight, initiate_vote, count_vote_result, generate_image]
 
 prompt = """
 You are a helpful assistant. STRICTLY follow these rules:
@@ -170,10 +171,8 @@ def invoke(prompt, from_uid):
                     
                     flight_details = tool_result.get('flight_details', {})
                     pricing = tool_result.get('pricing', {})
-                    meal_details = tool_result.get('meal_details', {})
-                    baggage_allowance = tool_result.get('baggage_allowance', {})
                     
-                    result["response"] = f"✅ Flight booking confirmed!\n\n✈️ Airline: {tool_result['airline']} ({tool_result['airline_code']})\n🛫 Origin: {tool_result['origin']}\n🛬 Destination: {tool_result['destination']}\n📅 Departure: {tool_result['departure_date']} at {flight_details.get('departure_time', 'N/A')}\n📅 Return: {tool_result.get('return_date', 'N/A')}\n👥 Passengers: {tool_result['passengers']}\n💺 Cabin Class: {tool_result['cabin_class'].title()}\n🎫 Trip Type: {tool_result['trip_type']}\n\n🛩️ Flight Details:\n• Flight Number: {flight_details.get('flight_number', 'N/A')}\n• Aircraft: {flight_details.get('aircraft', 'N/A')}\n• Duration: {flight_details.get('duration_hours', 'N/A')} hours\n• Terminal: {flight_details.get('terminal', 'N/A')}\n• Gate: {flight_details.get('gate', 'N/A')}\n\n💺 Seat Assignments: {', '.join(tool_result.get('seat_assignments', []))}\n\n🍽️ Meal: {meal_details.get('type', 'N/A')} - {meal_details.get('description', 'N/A')}\n\n🧳 Baggage: {baggage_allowance.get('type', 'N/A')} - {baggage_allowance.get('allowance', {}).get(baggage_allowance.get('type', '').lower(), 'N/A')}\n\n💰 Pricing:\n• Base Fare: ${pricing.get('base_fare', 0):.2f}\n• Meal Cost: ${pricing.get('meal_cost', 0):.2f}\n• Baggage Cost: ${pricing.get('baggage_cost', 0):.2f}\n• Taxes: ${pricing.get('taxes', 0):.2f}\n• Total: ${pricing.get('total', 0):.2f}\n\n🆔 Confirmation ID: {tool_result['confirmation_id']}"
+                    result["response"] = f"✅ Flight booking confirmed!\n\n✈️ Airline: {tool_result['airline']} ({tool_result['airline_code']})\n🛫 Origin: {tool_result['origin']}\n🛬 Destination: {tool_result['destination']}\n📅 Departure: {tool_result['departure_date']} at {flight_details.get('departure_time', 'N/A')}\n👥 Passengers: {tool_result['passengers']}\n💺 Cabin Class: {tool_result['cabin_class'].title()}\n\n🛩️ Flight Details:\n• Flight Number: {flight_details.get('flight_number', 'N/A')}\n• Aircraft: {flight_details.get('aircraft', 'N/A')}\n• Duration: {flight_details.get('duration_hours', 'N/A')} hours\n• Terminal: {flight_details.get('terminal', 'N/A')}\n• Gate: {flight_details.get('gate', 'N/A')}\n\n💰 Pricing:\n• Base Fare: ${pricing.get('base_fare', 0):.2f}\n• Taxes: ${pricing.get('taxes', 0):.2f}\n• Total: ${pricing.get('total', 0):.2f}\n\n🆔 Confirmation ID: {tool_result['confirmation_id']}"
                 elif tool_name == "book_cab":
                     print(f"DEBUG: Calling book_cab with parameters: {collected_args}")
                     tool_result = book_cab.invoke(collected_args)
