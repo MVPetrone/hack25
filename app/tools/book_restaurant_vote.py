@@ -6,6 +6,7 @@ from langchain.tools import tool
 
 from app.utils import send_group_message
 from app.store import vote_option_map
+from app.tools.book_restaurant import book_restaurant
 
 @tool
 # Collaborative restaurant booking function that creates separate votes for each category.
@@ -268,4 +269,62 @@ def get_restaurant_vote_results(group_id: str) -> Dict[str, Any]:
             "guests": "4 people",
             "cuisine": "French"
         }
+    } 
+
+@tool
+def execute_restaurant_booking_with_votes(
+    group_id: str,
+    location: str,
+    date: str,
+    time: str,
+    guests: int,
+    cuisine: str
+) -> Dict[str, Any]:
+    """Execute restaurant booking with the winning vote results."""
+    
+    if not group_id:
+        raise ValueError("Group ID is required")
+    
+    if not all([location, date, time, guests, cuisine]):
+        raise ValueError("All booking parameters are required: location, date, time, guests, cuisine")
+    
+    try:
+        # Convert guests to integer
+        guests = int(guests)
+        if guests < 1:
+            raise ValueError("Number of guests must be at least 1")
+    except (ValueError, TypeError):
+        raise ValueError("Invalid number of guests")
+    
+    # Execute the actual restaurant booking
+    booking_result = book_restaurant.invoke({
+        "location": location,
+        "date": date,
+        "time": time,
+        "guests": guests,
+        "cuisine": cuisine
+    })
+    
+    # Send confirmation message to the group
+    confirmation_message = f"""✅ **Restaurant Booking Confirmed!**
+
+🍽️ Restaurant: {booking_result['restaurant']}
+📍 Location: {booking_result['location']}
+📅 Date: {booking_result['date']}
+🕐 Time: {booking_result['time']}
+👥 Guests: {booking_result['guests']}
+🍴 Cuisine: {booking_result['cuisine']}
+💰 Estimated Total: ${booking_result['total_estimated_price']}
+🆔 Reservation ID: {booking_result['reservation_id']}
+
+🎉 Booking completed based on group votes!"""
+    
+    send_group_message(group_id, {"text": confirmation_message})
+    
+    return {
+        "status": "booking_confirmed",
+        "message": f"✅ Restaurant booking confirmed for group {group_id}",
+        "group_id": group_id,
+        "booking_details": booking_result,
+        "vote_based": True
     } 
