@@ -136,17 +136,20 @@ def invoke(prompt, from_uid):
                     print(f"DEBUG: Calling get_restaurant_vote_results with parameters: {collected_args}")
                     tool_result = get_restaurant_vote_results.invoke(collected_args)
                     
-                    # Format the vote results
-                    results_text = "📊 **Restaurant Vote Results**\n\n"
-                    for option, votes in tool_result.get('results', {}).items():
-                        results_text += f"• {option}: {votes} votes\n"
-                    
-                    results_text += f"\n🏆 **Winning Options:**\n"
-                    winning_options = tool_result.get('winning_options', {})
-                    for param, value in winning_options.items():
-                        results_text += f"• {param.title()}: {value}\n"
-                    
-                    result["response"] = results_text
+                    if tool_result.get("status") == "no_votes_found":
+                        result["response"] = f"📊 **Restaurant Vote Results**\n\n{tool_result.get('message', 'No votes found')}"
+                    else:
+                        # Format the vote results
+                        results_text = "📊 **Restaurant Vote Results**\n\n"
+                        for option, votes in tool_result.get('results', {}).items():
+                            results_text += f"• {option}: {votes} votes\n"
+                        
+                        results_text += f"\n🏆 **Winning Options:**\n"
+                        winning_options = tool_result.get('winning_options', {})
+                        for param, value in winning_options.items():
+                            results_text += f"• {param.title()}: {value}\n"
+                        
+                        result["response"] = results_text
                 elif tool_name == "execute_restaurant_booking_with_votes":
                     print(f"DEBUG: Calling execute_restaurant_booking_with_votes with parameters: {collected_args}")
                     tool_result = execute_restaurant_booking_with_votes.invoke(collected_args)

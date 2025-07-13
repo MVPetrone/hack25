@@ -5,7 +5,7 @@ from datetime import datetime
 from langchain.tools import tool
 
 from app.utils import send_group_message
-from app.store import vote_option_map
+from app.store import vote_option_map, message_queue
 from app.tools.book_restaurant import book_restaurant
 
 @tool
@@ -244,32 +244,61 @@ def get_restaurant_vote_results(group_id: str) -> Dict[str, Any]:
     if not group_id:
         raise ValueError("Group ID is required")
     
-    # This would typically query the vote results from the database
-    # For now, we'll return a mock result
+    # Initialize result count dictionary for restaurant vote options
+    result_count = {}
+    winning_options = {}
+    
+    # Count votes for each restaurant vote option
+    for message in message_queue:
+        vote_key = message.get("message_text", "")
+        if vote_key in vote_option_map:
+            option = vote_option_map[vote_key]
+            result_count[option] = result_count.get(option, 0) + 1
+    
+    # If no votes found, return empty results
+    if not result_count:
+        return {
+            "status": "no_votes_found",
+            "group_id": group_id,
+            "message": f"No restaurant votes found for group {group_id}",
+            "results": {},
+            "winning_options": {}
+        }
+    
+    # Determine winning options for each category
+    location_votes = {k: v for k, v in result_count.items() if k.startswith("Location: ")}
+    date_votes = {k: v for k, v in result_count.items() if k.startswith("Date: ")}
+    time_votes = {k: v for k, v in result_count.items() if k.startswith("Time: ")}
+    guests_votes = {k: v for k, v in result_count.items() if k.startswith("Guests: ")}
+    cuisine_votes = {k: v for k, v in result_count.items() if k.startswith("Cuisine: ")}
+    
+    # Find winners for each category
+    if location_votes:
+        winning_location = max(location_votes.items(), key=lambda x: x[1])
+        winning_options["location"] = winning_location[0].replace("Location: ", "")
+    
+    if date_votes:
+        winning_date = max(date_votes.items(), key=lambda x: x[1])
+        winning_options["date"] = winning_date[0].replace("Date: ", "")
+    
+    if time_votes:
+        winning_time = max(time_votes.items(), key=lambda x: x[1])
+        winning_options["time"] = winning_time[0].replace("Time: ", "")
+    
+    if guests_votes:
+        winning_guests = max(guests_votes.items(), key=lambda x: x[1])
+        winning_options["guests"] = winning_guests[0].replace("Guests: ", "")
+    
+    if cuisine_votes:
+        winning_cuisine = max(cuisine_votes.items(), key=lambda x: x[1])
+        winning_options["cuisine"] = winning_cuisine[0].replace("Cuisine: ", "")
+    
     return {
         "status": "vote_results",
         "group_id": group_id,
-        "results": {
-            "Location: London": 5,
-            "Location: Beijing": 2,
-            "Location: New York": 3,
-            "Date: Tomorrow": 4,
-            "Date: This Weekend": 3,
-            "Time: 19:00 (7 PM)": 6,
-            "Time: 20:00 (8 PM)": 2,
-            "Guests: 4 people": 5,
-            "Guests: 6 people": 3,
-            "Cuisine: French": 4,
-            "Cuisine: Chinese": 2
-        },
-        "winning_options": {
-            "location": "London",
-            "date": "Tomorrow",
-            "time": "19:00",
-            "guests": "4 people",
-            "cuisine": "French"
-        }
-    } 
+        "results": result_count,
+        "winning_options": winning_options
+    }
 
 @tool
 def execute_restaurant_booking_with_votes(
