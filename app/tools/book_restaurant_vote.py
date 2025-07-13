@@ -1,9 +1,11 @@
 import random
+import uuid
 from typing import Dict, Any
 from datetime import datetime
 from langchain.tools import tool
 
 from app.utils import send_group_message
+from app.store import vote_option_map
 
 @tool
 # Collaborative restaurant booking function that creates a vote in the group to gather preferences.
@@ -87,8 +89,26 @@ def book_restaurant_vote(
     
     vote_message += f"\nPlease vote for your preferences:"
     
-    # Send the vote to the group
-    send_group_message(group_id, {"text": vote_message})
+    # Create clickable buttons for voting
+    button_options = []
+    for option in vote_options:
+        selector = f"vote:{uuid.uuid4().hex}"
+        button_options.append({
+            "name": option,
+            "selector": selector,
+            "type": "default",
+            "isHidden": "1"
+        })
+        vote_option_map[selector] = option
+    
+    # Create payload with text and buttons
+    payload = {
+        "text": vote_message,
+        "button": button_options
+    }
+    
+    # Send the vote to the group with clickable buttons
+    send_group_message(group_id, payload)
     
     return {
         "status": "vote_created",
