@@ -15,15 +15,15 @@ A LangGraph-powered AI assistant that integrates with the Endless blockchain for
 - [Contributing](#-contributing)
 - [License](#-license)
 
-## 📖 Story: Michal's New York Adventure
+## 📖 Story: Michael's New York Adventure
 
-### Meet Michal
+### Meet Michael
 
-Michal is a tech enthusiast from London who loves exploring new cities with his friends. When he heard his friends were planning a trip to New York, he decided to use the latest AI technology - **LuffaBot** - to plan their entire journey using the Endless blockchain for seamless payments.
+Michael is a tech enthusiast from London who loves exploring new cities with his friends. When he heard his friends were planning a trip to New York, he decided to use the latest AI technology - **LuffaBot** - to plan their entire journey using the Endless blockchain for seamless payments.
 
 ### 🎯 The Challenge
 
-Michal needed to:
+Michael needed to:
 
 1. **Book flights** from London to New York for himself
 2. **Reserve hotel rooms** for 4 friends staying together
@@ -97,7 +97,7 @@ _"We want to decide on a restaurant for dinner on December 16th. Can you create 
 Once all votes are complete, you can check the results and make the final booking.
 ```
 
-_Michal's friends received voting buttons in their group chat:_
+_Michael's friends received voting buttons in their group chat:_
 
 **Location Vote:**
 
