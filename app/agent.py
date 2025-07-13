@@ -69,6 +69,7 @@ def invoke(prompt, from_uid):
     tool_name = None
     collected_args = {}
     required_params = []
+    tool_result = None
 
     # Inspect agent's returned steps for tool calls and extract arguments
     for step in result.get("messages", []):
@@ -99,7 +100,24 @@ def invoke(prompt, from_uid):
         if missing_params:
             result["response"] = f"Got partial info for `{tool_name}`. Please provide: {', '.join(missing_params)}"
         else:
-            result["response"] = f"All parameters collected for `{tool_name}`: {collected_args}"
+            # Actually call the tool and get the result
+            try:
+                if tool_name == "book_hotel":
+                    tool_result = book_hotel(**collected_args)
+                    result["response"] = f"✅ Hotel booking confirmed!\n\n🏨 Hotel: {tool_result['hotel']}\n📍 Location: {tool_result['location']}\n📅 Check-in: {tool_result['check_in']}\n📅 Check-out: {tool_result['check_out']}\n👥 Guests: {tool_result['guests']}\n🛏️ Room Type: {tool_result['room_type']}\n🌙 Nights: {tool_result['nights']}\n💰 Total Price: ${tool_result['total_price']}\n🆔 Confirmation ID: {tool_result['confirmation_id']}"
+                elif tool_name == "initiate_vote":
+                    tool_result = initiate_vote(**collected_args)
+                    result["response"] = f"✅ Vote initiated successfully!\n\n📊 Title: {collected_args['title']}\n👥 Group: {collected_args['group_id']}\n🗳️ Options: {', '.join(collected_args['options'])}"
+                elif tool_name == "download_video":
+                    tool_result = download_video(**collected_args)
+                    result["response"] = f"📹 Video download initiated for: {collected_args.get('video_url', 'unknown URL')}"
+                elif tool_name == "transcribe":
+                    tool_result = transcribe(**collected_args)
+                    result["response"] = f"📝 Transcription completed for: {collected_args.get('video_url', 'unknown URL')}"
+                else:
+                    result["response"] = f"All parameters collected for `{tool_name}`: {collected_args}"
+            except Exception as e:
+                result["response"] = f"❌ Error executing {tool_name}: {str(e)}"
     else:
         result["response"] = result.get("messages", [])[-1].content if result.get("messages") else ""
 
