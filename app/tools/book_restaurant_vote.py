@@ -8,8 +8,8 @@ from app.utils import send_group_message
 from app.store import vote_option_map
 
 @tool
-# Collaborative restaurant booking function that creates a vote in the group to gather preferences.
-# The group votes on location, date, time, cuisine, and number of guests before making the final booking.
+# Collaborative restaurant booking function that creates separate votes for each category.
+# Creates individual votes for location, date, time, guests, and cuisine preferences.
 def book_restaurant_vote(
     group_id: str,
     location: str = None,
@@ -18,7 +18,7 @@ def book_restaurant_vote(
     guests: int = None,
     cuisine: str = None,
 ) -> Dict[str, Any]:
-    """Create a vote in the group to gather restaurant booking preferences."""
+    """Create separate votes in the group for each restaurant booking category."""
     
     # Validate group_id is required
     if not group_id:
@@ -28,92 +28,53 @@ def book_restaurant_vote(
     if not group_id:
         raise ValueError("Group ID cannot be empty")
     
-    # Define voting options based on what's missing
-    vote_title = "Restaurant Booking Preferences"
-    vote_options = []
+    # Track which votes were created
+    created_votes = []
     
+    # Create separate vote for location if missing
     if not location:
-        vote_options.extend([
-            "Location: London",
-            "Location: Beijing", 
-            "Location: New York",
-            "Location: Other"
-        ])
+        location_vote = _create_location_vote(group_id)
+        created_votes.append("location")
     
+    # Create separate vote for date if missing
     if not date:
-        vote_options.extend([
-            "Date: Today",
-            "Date: Tomorrow",
-            "Date: This Weekend",
-            "Date: Next Week"
-        ])
+        date_vote = _create_date_vote(group_id)
+        created_votes.append("date")
     
+    # Create separate vote for time if missing
     if not time:
-        vote_options.extend([
-            "Time: 18:00 (6 PM)",
-            "Time: 19:00 (7 PM)",
-            "Time: 20:00 (8 PM)",
-            "Time: 21:00 (9 PM)"
-        ])
+        time_vote = _create_time_vote(group_id)
+        created_votes.append("time")
     
+    # Create separate vote for guests if missing
     if not guests:
-        vote_options.extend([
-            "Guests: 2 people",
-            "Guests: 4 people",
-            "Guests: 6 people",
-            "Guests: 8+ people"
-        ])
+        guests_vote = _create_guests_vote(group_id)
+        created_votes.append("guests")
     
+    # Create separate vote for cuisine if missing
     if not cuisine:
-        vote_options.extend([
-            "Cuisine: International",
-            "Cuisine: Chinese",
-            "Cuisine: French",
-            "Cuisine: Indian"
-        ])
+        cuisine_vote = _create_cuisine_vote(group_id)
+        created_votes.append("cuisine")
     
-    # Create the vote message
-    vote_message = f"🍽️ **Restaurant Booking Vote**\n\n"
-    vote_message += f"Let's decide on our restaurant booking preferences!\n\n"
-    
-    if location:
-        vote_message += f"📍 Location: {location}\n"
-    if date:
-        vote_message += f"📅 Date: {date}\n"
-    if time:
-        vote_message += f"🕐 Time: {time}\n"
-    if guests:
-        vote_message += f"👥 Guests: {guests}\n"
-    if cuisine:
-        vote_message += f"🍴 Cuisine: {cuisine}\n"
-    
-    vote_message += f"\nPlease vote for your preferences:"
-    
-    # Create clickable buttons for voting
-    button_options = []
-    for option in vote_options:
-        selector = f"vote:{uuid.uuid4().hex}"
-        button_options.append({
-            "name": option,
-            "selector": selector,
-            "type": "default",
-            "isHidden": "1"
-        })
-        vote_option_map[selector] = option
-    
-    # Create payload with text and buttons
-    payload = {
-        "text": vote_message,
-        "button": button_options
-    }
-    
-    # Send the vote to the group with clickable buttons
-    send_group_message(group_id, payload)
+    if not created_votes:
+        return {
+            "status": "no_votes_needed",
+            "message": f"All restaurant booking parameters are already provided for group {group_id}",
+            "group_id": group_id,
+            "provided_parameters": {
+                "location": location,
+                "date": date,
+                "time": time,
+                "guests": guests,
+                "cuisine": cuisine
+            }
+        }
     
     return {
-        "status": "vote_created",
-        "message": f"✅ Restaurant booking vote created in group {group_id}",
+        "status": "votes_created",
+        "message": f"✅ Created {len(created_votes)} restaurant booking votes in group {group_id}",
         "group_id": group_id,
+        "created_votes": created_votes,
         "missing_parameters": {
             "location": location is None,
             "date": date is None,
@@ -121,7 +82,6 @@ def book_restaurant_vote(
             "guests": guests is None,
             "cuisine": cuisine is None
         },
-        "vote_options": vote_options,
         "provided_parameters": {
             "location": location,
             "date": date,
@@ -131,9 +91,154 @@ def book_restaurant_vote(
         }
     }
 
+def _create_location_vote(group_id: str) -> None:
+    """Create a vote for restaurant location preference."""
+    vote_message = "📍 **Restaurant Location Vote**\n\nWhere would you like to dine?\n\nPlease vote for your preferred location:"
+    
+    location_options = [
+        "London",
+        "Beijing", 
+        "New York",
+        "Other"
+    ]
+    
+    button_options = []
+    for option in location_options:
+        selector = f"vote:{uuid.uuid4().hex}"
+        button_options.append({
+            "name": option,
+            "selector": selector,
+            "type": "default",
+            "isHidden": "1"
+        })
+        vote_option_map[selector] = f"Location: {option}"
+    
+    payload = {
+        "text": vote_message,
+        "button": button_options
+    }
+    
+    send_group_message(group_id, payload)
+
+def _create_date_vote(group_id: str) -> None:
+    """Create a vote for restaurant date preference."""
+    vote_message = "📅 **Restaurant Date Vote**\n\nWhen would you like to dine?\n\nPlease vote for your preferred date:"
+    
+    date_options = [
+        "Today",
+        "Tomorrow",
+        "This Weekend",
+        "Next Week"
+    ]
+    
+    button_options = []
+    for option in date_options:
+        selector = f"vote:{uuid.uuid4().hex}"
+        button_options.append({
+            "name": option,
+            "selector": selector,
+            "type": "default",
+            "isHidden": "1"
+        })
+        vote_option_map[selector] = f"Date: {option}"
+    
+    payload = {
+        "text": vote_message,
+        "button": button_options
+    }
+    
+    send_group_message(group_id, payload)
+
+def _create_time_vote(group_id: str) -> None:
+    """Create a vote for restaurant time preference."""
+    vote_message = "🕐 **Restaurant Time Vote**\n\nWhat time would you like to dine?\n\nPlease vote for your preferred time:"
+    
+    time_options = [
+        "18:00 (6 PM)",
+        "19:00 (7 PM)",
+        "20:00 (8 PM)",
+        "21:00 (9 PM)"
+    ]
+    
+    button_options = []
+    for option in time_options:
+        selector = f"vote:{uuid.uuid4().hex}"
+        button_options.append({
+            "name": option,
+            "selector": selector,
+            "type": "default",
+            "isHidden": "1"
+        })
+        vote_option_map[selector] = f"Time: {option}"
+    
+    payload = {
+        "text": vote_message,
+        "button": button_options
+    }
+    
+    send_group_message(group_id, payload)
+
+def _create_guests_vote(group_id: str) -> None:
+    """Create a vote for number of guests preference."""
+    vote_message = "👥 **Number of Guests Vote**\n\nHow many people will be dining?\n\nPlease vote for the number of guests:"
+    
+    guests_options = [
+        "2 people",
+        "4 people",
+        "6 people",
+        "8+ people"
+    ]
+    
+    button_options = []
+    for option in guests_options:
+        selector = f"vote:{uuid.uuid4().hex}"
+        button_options.append({
+            "name": option,
+            "selector": selector,
+            "type": "default",
+            "isHidden": "1"
+        })
+        vote_option_map[selector] = f"Guests: {option}"
+    
+    payload = {
+        "text": vote_message,
+        "button": button_options
+    }
+    
+    send_group_message(group_id, payload)
+
+def _create_cuisine_vote(group_id: str) -> None:
+    """Create a vote for cuisine preference."""
+    vote_message = "🍴 **Cuisine Preference Vote**\n\nWhat type of cuisine would you prefer?\n\nPlease vote for your preferred cuisine:"
+    
+    cuisine_options = [
+        "International",
+        "Chinese",
+        "French",
+        "Indian"
+    ]
+    
+    button_options = []
+    for option in cuisine_options:
+        selector = f"vote:{uuid.uuid4().hex}"
+        button_options.append({
+            "name": option,
+            "selector": selector,
+            "type": "default",
+            "isHidden": "1"
+        })
+        vote_option_map[selector] = f"Cuisine: {option}"
+    
+    payload = {
+        "text": vote_message,
+        "button": button_options
+    }
+    
+    send_group_message(group_id, payload)
+
 @tool
 def get_restaurant_vote_results(group_id: str) -> Dict[str, Any]:
-    """Get the current results of the restaurant booking vote."""
+    """Get the current results of the restaurant booking votes."""
     
     if not group_id:
         raise ValueError("Group ID is required")

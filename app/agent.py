@@ -121,7 +121,15 @@ def invoke(prompt, from_uid):
                 elif tool_name == "book_restaurant_vote":
                     print(f"DEBUG: Calling book_restaurant_vote with parameters: {collected_args}")
                     tool_result = book_restaurant_vote.invoke(collected_args)
-                    result["response"] = f"✅ Restaurant booking vote created!\n\n🍽️ Group: {tool_result['group_id']}\n📊 Status: Gathering preferences\n🗳️ Vote options: {len(tool_result.get('vote_options', []))} options\n\nThe group will vote on the missing preferences, then you can use the final booking once all votes are collected."
+                    
+                    if tool_result.get("status") == "votes_created":
+                        created_votes = tool_result.get("created_votes", [])
+                        vote_count = len(created_votes)
+                        result["response"] = f"✅ Created {vote_count} restaurant booking votes in group {tool_result['group_id']}!\n\n📊 Votes created for: {', '.join(created_votes)}\n🗳️ Group members can now vote on each category separately.\n\nOnce all votes are complete, you can check the results and make the final booking."
+                    elif tool_result.get("status") == "no_votes_needed":
+                        result["response"] = f"✅ All restaurant booking parameters are already provided for group {tool_result['group_id']}!\n\nYou can proceed directly to booking with the provided parameters."
+                    else:
+                        result["response"] = f"✅ Restaurant booking vote created!\n\n🍽️ Group: {tool_result['group_id']}\n📊 Status: Gathering preferences\n\nThe group will vote on the missing preferences, then you can use the final booking once all votes are collected."
                 elif tool_name == "get_restaurant_vote_results":
                     print(f"DEBUG: Calling get_restaurant_vote_results with parameters: {collected_args}")
                     tool_result = get_restaurant_vote_results.invoke(collected_args)
