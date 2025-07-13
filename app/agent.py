@@ -8,6 +8,7 @@ from app.tools.video_downloader import download_video
 from app.tools.book_hotel import book_hotel
 from app.tools.book_restaurant import book_restaurant
 from app.tools.book_restaurant_vote import book_restaurant_vote, get_restaurant_vote_results, execute_restaurant_booking_with_votes
+from app.tools.book_cab import book_cab
 from app.tools.start_vote import initiate_vote, count_vote_result
 from app.tools.image_generator import generate_image
 
@@ -16,7 +17,7 @@ from app.utils import send_user_message
 
 openai_api_key = config.OPENAI_API_KEY
 
-tools = [download_video, transcribe, book_hotel, book_restaurant, book_restaurant_vote, get_restaurant_vote_results, execute_restaurant_booking_with_votes, initiate_vote, count_vote_result, generate_image]
+tools = [download_video, transcribe, book_hotel, book_restaurant, book_restaurant_vote, get_restaurant_vote_results, execute_restaurant_booking_with_votes, book_cab, initiate_vote, count_vote_result, generate_image]
 
 prompt = """
 You are a helpful assistant. STRICTLY follow these rules:
@@ -90,6 +91,8 @@ def invoke(prompt, from_uid):
                     required_params = ["group_id"]
                 if tool_name == "execute_restaurant_booking_with_votes":
                     required_params = ["group_id", "location", "date", "time", "guests", "cuisine"]
+                if tool_name == "book_cab":
+                    required_params = ["pickup_location", "destination"]
                 if tool_name == "initiate_vote":
                     required_params = ["group_id", "title", "options"]
 
@@ -159,6 +162,10 @@ def invoke(prompt, from_uid):
                         result["response"] = f"✅ Restaurant booking confirmed based on group votes!\n\n🍽️ Restaurant: {booking_details['restaurant']}\n📍 Location: {booking_details['location']}\n📅 Date: {booking_details['date']}\n🕐 Time: {booking_details['time']}\n👥 Guests: {booking_details['guests']}\n🍴 Cuisine: {booking_details['cuisine']}\n💰 Estimated Total: ${booking_details['total_estimated_price']}\n🆔 Reservation ID: {booking_details['reservation_id']}\n\n🎉 Booking completed based on group votes!"
                     else:
                         result["response"] = f"✅ Restaurant booking executed for group {tool_result.get('group_id', 'unknown')}"
+                elif tool_name == "book_cab":
+                    print(f"DEBUG: Calling book_cab with parameters: {collected_args}")
+                    tool_result = book_cab.invoke(collected_args)
+                    result["response"] = f"✅ Cab booking confirmed!\n\n🚕 Company: {tool_result['company']}\n👨‍💼 Driver: {tool_result['driver_name']} (⭐ {tool_result['driver_rating']})\n🚗 Vehicle: {tool_result['vehicle_info']['model']} ({tool_result['vehicle_info']['color']}, {tool_result['vehicle_info']['year']})\n📍 Pickup: {tool_result['pickup_location']}\n🎯 Destination: {tool_result['destination']}\n📅 Date: {tool_result['date']}\n🕐 Time: {tool_result['time']}\n👥 Passengers: {tool_result['passengers']}\n🚙 Cab Type: {tool_result['cab_type'].title()}\n📏 Distance: {tool_result['distance_km']} km\n⏱️ Duration: ~{tool_result['estimated_duration_minutes']} minutes\n💰 Base Fare: ${tool_result['base_fare']}\n💳 Booking Fee: ${tool_result['booking_fee']}\n💵 Total Fare: ${tool_result['total_fare']}\n💳 Payment: {tool_result['payment_method'].title()}\n🆔 Booking ID: {tool_result['booking_id']}"
                 elif tool_name == "initiate_vote":
                     tool_result = initiate_vote.invoke(collected_args)
                     result["response"] = f"✅ Vote initiated successfully!\n\n📊 Title: {collected_args['title']}\n👥 Group: {collected_args['group_id']}\n🗳️ Options: {', '.join(collected_args['options'])}"
